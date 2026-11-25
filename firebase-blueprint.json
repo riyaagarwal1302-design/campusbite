@@ -1,0 +1,247 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private student profile storing delivery preferences for CampusBite Dehradun.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID matching the document ID."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200,
+          "description": "Verified Google account email."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Student display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional Google profile photo URL."
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 20,
+          "pattern": "^[0-9+\\-\\s]*$",
+          "description": "Student contact or WhatsApp number."
+        },
+        "college": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "College or university in Dehradun."
+        },
+        "hostelOrPg": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Hostel or PG building name."
+        },
+        "area": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Dehradun locality or campus zone."
+        },
+        "roomNumber": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Room or flat identifier."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of profile creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last profile update."
+        }
+      },
+      "required": ["uid", "email", "displayName", "createdAt", "updatedAt"]
+    },
+    "MealOrder": {
+      "title": "MealOrder",
+      "description": "A student meal pre-order for hostel, PG, or campus delivery in Dehradun.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Ordering student Firebase Auth UID."
+        },
+        "studentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Name of the student placing the order."
+        },
+        "studentEmail": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200,
+          "description": "Email of the student placing the order."
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 20,
+          "pattern": "^[0-9+\\-\\s]{7,20}$",
+          "description": "WhatsApp / call contact number for delivery."
+        },
+        "deliveryLocation": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200,
+          "description": "Hostel, PG, or campus gate delivery address."
+        },
+        "area": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100,
+          "description": "Dehradun area (e.g., Prem Nagar, Clement Town, Rajpur Road)."
+        },
+        "mealSlot": {
+          "type": "string",
+          "enum": [
+            "Lunch (12:30 - 2:00 PM)",
+            "Evening (4:30 - 6:00 PM)",
+            "Dinner (7:30 - 9:30 PM)"
+          ],
+          "description": "Scheduled delivery time window."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["UPI on Delivery", "Cash on Delivery"],
+          "description": "Payment mode on meal arrival."
+        },
+        "itemsSummary": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 500,
+          "description": "Human-readable itemized meal summary."
+        },
+        "itemIds": {
+          "type": "array",
+          "description": "Bounded list of ordered menu item IDs (max 20)."
+        },
+        "totalItems": {
+          "type": "integer",
+          "description": "Total meal quantity (1 to 20)."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total payable amount in INR (30 to 5000)."
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Optional spice or delivery note."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "preparing", "out_for_delivery", "delivered", "cancelled"],
+          "description": "Order fulfillment status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when order was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest status update."
+        }
+      },
+      "required": [
+        "userId",
+        "studentName",
+        "studentEmail",
+        "phone",
+        "deliveryLocation",
+        "area",
+        "mealSlot",
+        "paymentMethod",
+        "itemsSummary",
+        "itemIds",
+        "totalItems",
+        "totalAmount",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "OrderFeedback": {
+      "title": "OrderFeedback",
+      "description": "Post-meal student rating and ₹100 affordability validation feedback.",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Associated MealOrder ID."
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Reviewer Firebase Auth UID."
+        },
+        "rating": {
+          "type": "integer",
+          "description": "Star rating from 1 to 5."
+        },
+        "priceFeelsAffordable": {
+          "type": "boolean",
+          "description": "Whether the student considers the ~₹100 price affordable."
+        },
+        "wouldRefer": {
+          "type": "boolean",
+          "description": "Whether the student would refer CampusBite to hostel mates."
+        },
+        "comment": {
+          "type": "string",
+          "maxLength": 400,
+          "description": "Written meal taste, hygiene, and delivery feedback."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of feedback submission."
+        }
+      },
+      "required": [
+        "orderId",
+        "userId",
+        "rating",
+        "priceFeelsAffordable",
+        "wouldRefer",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private student profile documents keyed by Auth UID."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/MealOrder" },
+      "description": "Meal pre-orders placed by authenticated students."
+    },
+    "/feedback/{orderId}": {
+      "schema": { "$ref": "#/entities/OrderFeedback" },
+      "description": "One-per-order student satisfaction and pricing feedback."
+    }
+  }
+}

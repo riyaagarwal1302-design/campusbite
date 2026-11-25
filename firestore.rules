@@ -1,0 +1,171 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerified() && request.auth.token.email == 'riyaagarwal1302@gmail.com';
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'uid', 'email', 'displayName', 'photoURL', 'phone',
+          'college', 'hostelOrPg', 'area', 'roomNumber', 'createdAt', 'updatedAt'
+        ])
+        && data.uid is string && data.uid == userId && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 20 && data.phone.matches('^[0-9+\\-\\s]*$')))
+        && (!('college' in data) || (data.college is string && data.college.size() <= 120))
+        && (!('hostelOrPg' in data) || (data.hostelOrPg is string && data.hostelOrPg.size() <= 120))
+        && (!('area' in data) || (data.area is string && data.area.size() <= 100))
+        && (!('roomNumber' in data) || (data.roomNumber is string && data.roomNumber.size() <= 40))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidMealOrder(data) {
+      return data.keys().hasAll([
+          'userId', 'studentName', 'studentEmail', 'phone', 'deliveryLocation',
+          'area', 'mealSlot', 'paymentMethod', 'itemsSummary', 'itemIds',
+          'totalItems', 'totalAmount', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'studentName', 'studentEmail', 'phone', 'deliveryLocation',
+          'area', 'mealSlot', 'paymentMethod', 'itemsSummary', 'itemIds',
+          'totalItems', 'totalAmount', 'notes', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 100
+        && data.studentEmail is string && data.studentEmail.size() >= 3 && data.studentEmail.size() <= 200
+        && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 20 && data.phone.matches('^[0-9+\\-\\s]{7,20}$')
+        && data.deliveryLocation is string && data.deliveryLocation.size() >= 3 && data.deliveryLocation.size() <= 200
+        && data.area is string && data.area.size() >= 2 && data.area.size() <= 100
+        && data.mealSlot is string && data.mealSlot in [
+          'Lunch (12:30 - 2:00 PM)',
+          'Evening (4:30 - 6:00 PM)',
+          'Dinner (7:30 - 9:30 PM)'
+        ]
+        && data.paymentMethod is string && data.paymentMethod in ['UPI on Delivery', 'Cash on Delivery']
+        && data.itemsSummary is string && data.itemsSummary.size() >= 2 && data.itemsSummary.size() <= 500
+        && data.itemIds is list && data.itemIds.size() >= 1 && data.itemIds.size() <= 20 && data.itemIds[0] is string
+        && data.totalItems is int && data.totalItems >= 1 && data.totalItems <= 20
+        && data.totalAmount is number && data.totalAmount >= 30 && data.totalAmount <= 5000
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 300))
+        && data.status is string && data.status in ['pending', 'preparing', 'out_for_delivery', 'delivered', 'cancelled']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidOrderFeedback(data, orderId) {
+      return data.keys().hasAll(['orderId', 'userId', 'rating', 'priceFeelsAffordable', 'wouldRefer', 'createdAt'])
+        && data.keys().hasOnly(['orderId', 'userId', 'rating', 'priceFeelsAffordable', 'wouldRefer', 'comment', 'createdAt'])
+        && data.orderId is string && data.orderId == orderId && data.orderId.size() <= 128 && data.orderId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.rating is int && data.rating >= 1 && data.rating <= 5
+        && data.priceFeelsAffordable is bool
+        && data.wouldRefer is bool
+        && (!('comment' in data) || (data.comment is string && data.comment.size() <= 400))
+        && data.createdAt is timestamp;
+    }
+
+    match /test/connection {
+      allow get: if true;
+      allow list, write: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isVerified()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerified()
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
+            'displayName', 'photoURL', 'phone', 'college', 'hostelOrPg', 'area', 'roomNumber', 'updatedAt'
+          ]))
+        );
+      allow delete: if false;
+    }
+
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && isSignedIn() && (isAdmin() || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || existing().userId == request.auth.uid);
+      allow create: if isVerified()
+        && isValidId(orderId)
+        && isValidMealOrder(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerified()
+        && isValidId(orderId)
+        && isValidMealOrder(incoming())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+          (
+            existing().userId == request.auth.uid
+            && existing().status == 'pending'
+            && incoming().status == 'cancelled'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+      allow delete: if false;
+    }
+
+    match /feedback/{orderId} {
+      allow get: if isValidId(orderId) && isSignedIn() && (isAdmin() || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || existing().userId == request.auth.uid);
+      allow create: if isVerified()
+        && isValidId(orderId)
+        && isValidOrderFeedback(incoming(), orderId)
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/orders/$(orderId))
+        && get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid
+        && get(/databases/$(database)/documents/orders/$(orderId)).data.status != 'cancelled';
+      allow update, delete: if false;
+    }
+  }
+}
